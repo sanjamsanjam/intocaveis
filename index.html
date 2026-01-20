@@ -56,7 +56,7 @@ input { padding:6px; margin:4px; width:95% }
 
 <script>
 // 🔑 SUBSTITUA AQUI
-const supabase = supabaseJs.createClient(
+const supabase = window.supabase.createClient(
   "https://rbnwmnacjjlzwvgdhknf.supabase.co",
   "sb_publishable_s7UFK5ZSDIVnSlqfkQbPaQ_y3C1pI4a"
 );
@@ -135,5 +135,6 @@ carregar();
 
 </body>
 </html>
+
 
 

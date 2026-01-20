@@ -8,15 +8,26 @@
 <style>
 body { margin:0; font-family:Arial; background:#f1f5f9 }
 header { background:#0f172a; color:white; padding:15px }
-nav button { margin:5px; padding:8px 12px; border:none; border-radius:6px; cursor:pointer; background:#22c55e; color:white }
+nav button {
+  margin:5px; padding:8px 12px; border:none;
+  border-radius:6px; cursor:pointer;
+  background:#22c55e; color:white
+}
 section { display:none; padding:20px }
-.card { background:white; padding:15px; border-radius:10px; margin-bottom:20px }
-.player { display:inline-block; width:160px; margin:10px; background:white; border-radius:10px; padding:10px; text-align:center }
-.player img { width:100%; height:120px; object-fit:cover; border-radius:8px }
-table { width:100%; border-collapse:collapse; background:white }
-th,td { padding:8px; border:1px solid #ddd; text-align:center }
-th { background:#0f172a; color:white }
-input,select { padding:6px; margin:4px; width:95% }
+.card {
+  background:white; padding:15px;
+  border-radius:10px; margin-bottom:20px
+}
+.player {
+  display:inline-block; width:160px; margin:10px;
+  background:white; border-radius:10px;
+  padding:10px; text-align:center
+}
+.player img {
+  width:100%; height:120px;
+  object-fit:cover; border-radius:8px
+}
+input { padding:6px; margin:4px; width:95% }
 </style>
 </head>
 
@@ -24,194 +35,104 @@ input,select { padding:6px; margin:4px; width:95% }
 
 <header>
 <h2>⚽ Portal do Time</h2>
-<nav id="menu" style="display:none">
+<nav>
 <button onclick="show('jogadores')">Jogadores</button>
-<button onclick="show('jogos')">Jogos</button>
-<button onclick="show('estatisticas')">Estatísticas</button>
-<button onclick="logout()">Sair</button>
 </nav>
 </header>
 
-<section id="login">
-<div class="card">
-<h3>Login</h3>
-<input id="user" placeholder="Usuário">
-<input id="pass" type="password" placeholder="Senha">
-<button onclick="login()">Entrar</button>
-</div>
-</section>
-
 <section id="jogadores">
 <div class="card">
-<h3 id="tituloJogador">Cadastrar Jogador</h3>
-<input id="nomeJogador" placeholder="Nome">
-<input id="posicaoJogador" placeholder="Posição">
-<input id="fotoJogador" type="file">
-<button onclick="salvarJogador()">Salvar</button>
+<h3>Cadastrar Jogador</h3>
+<input id="nome" placeholder="Nome">
+<input id="posicao" placeholder="Posição">
+<input id="foto" type="file">
+<button onclick="salvar()">Salvar</button>
 </div>
-<div id="listaJogadores"></div>
+
+<div id="lista"></div>
 </section>
 
-<section id="jogos">
-<div class="card">
-<h3>Cadastrar Jogo</h3>
-<input id="data" type="date">
-<input id="adversario" placeholder="Adversário">
-<input id="golsPro" type="number" placeholder="Gols do Time">
-<input id="golsContra" type="number" placeholder="Gols do Adversário">
-<button onclick="salvarJogo()">Salvar</button>
-</div>
-</section>
-
-<section id="estatisticas">
-<div class="card">
-<h3>Estatísticas do Time</h3>
-<table>
-<thead>
-<tr>
-<th>Jogos</th><th>Vitórias</th><th>Empates</th><th>Derrotas</th>
-<th>Gols Pró</th><th>Gols Contra</th><th>Saldo</th>
-</tr>
-</thead>
-<tbody>
-<tr id="statsTime"></tr>
-</tbody>
-</table>
-</div>
-</section>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+// 🔑 SUBSTITUA AQUI
+const supabase = supabaseJs.createClient(
+  "https://SUA_BASE_URL.supabase.co",
+  "SUA_PUBLISHABLE_KEY"
+);
 
-const ADMIN = { user:"admin", pass:"1234" };
 const FOTO_PADRAO = "https://via.placeholder.com/150";
 
-const jogadoresIniciais = [
-"Andre Carvalho","Andre do Grau","Andrezinho","Chicle","Du","Edinei","Gilvan",
-"Igor","Mia","Lo","Mezenga","Pedro Paulo","Rafinha","Robertinho","Romario",
-"Silas","Casinha","Tchaca","Vinicius","Maguila","Danilo","Thiagão","Nego BU",
-"Rodrigo","Ewandro","Wagner","Ruivo","Diego Galo","Elizeu","Da Moita"
-];
-
-let jogadores = JSON.parse(localStorage.getItem("jogadores"));
-if (!jogadores || jogadores.length === 0) {
-  jogadores = jogadoresIniciais.map(n => ({ nome:n, posicao:"Jogador", foto:FOTO_PADRAO }));
-  localStorage.setItem("jogadores", JSON.stringify(jogadores));
-}
-
-let jogos = JSON.parse(localStorage.getItem("jogos")) || [];
-let editIndex = null;
-
-const loginSec = document.getElementById("login");
-const menu = document.getElementById("menu");
-
-window.show = id => {
+// mostrar seção
+function show(id){
   document.querySelectorAll("section").forEach(s=>s.style.display="none");
   document.getElementById(id).style.display="block";
-};
-
-window.login = () => {
-  if (user.value===ADMIN.user && pass.value===ADMIN.pass) {
-    localStorage.setItem("logado","1");
-    iniciar();
-  } else alert("Login inválido");
-};
-
-window.logout = () => {
-  localStorage.removeItem("logado");
-  location.reload();
-};
-
-function iniciar(){
-  loginSec.style.display="none";
-  menu.style.display="block";
-  show("jogadores");
-  listarJogadores();
-  calcularEstatisticas();
 }
+show("jogadores");
 
-if (localStorage.getItem("logado")) iniciar();
-else loginSec.style.display="block";
+// carregar jogadores
+async function carregar(){
+  const { data, error } = await supabase
+    .from("jogadores")
+    .select("*")
+    .order("id");
 
-window.salvarJogador = () => {
-  const nome = nomeJogador.value.trim();
-  const posicao = posicaoJogador.value.trim();
-  if(!nome || !posicao) return alert("Preencha nome e posição");
+  if(error){
+    alert("Erro ao carregar jogadores");
+    console.error(error);
+    return;
+  }
 
-  const salvar = foto => {
-    const obj = { nome, posicao, foto };
-    if (editIndex !== null) {
-      jogadores[editIndex] = obj;
-      editIndex = null;
-      tituloJogador.innerText = "Cadastrar Jogador";
-    } else jogadores.push(obj);
-
-    localStorage.setItem("jogadores", JSON.stringify(jogadores));
-    nomeJogador.value = posicaoJogador.value = fotoJogador.value = "";
-    listarJogadores();
-  };
-
-  const file = fotoJogador.files[0];
-  if (file) {
-    const r = new FileReader();
-    r.onload = () => salvar(r.result);
-    r.readAsDataURL(file);
-  } else salvar(FOTO_PADRAO);
-};
-
-function listarJogadores(){
-  listaJogadores.innerHTML="";
-  jogadores.forEach((j,i)=>{
-    listaJogadores.innerHTML+=`
+  lista.innerHTML = "";
+  data.forEach(j=>{
+    lista.innerHTML += `
       <div class="player">
-        <img src="${j.foto}">
+        <img src="${j.foto || FOTO_PADRAO}">
         <b>${j.nome}</b>
         <p>${j.posicao}</p>
-        <button onclick="editar(${i})">Editar</button>
-        <button onclick="excluir(${i})">Excluir</button>
-      </div>`;
+      </div>
+    `;
   });
 }
 
-window.editar = i => {
-  editIndex = i;
-  nomeJogador.value = jogadores[i].nome;
-  posicaoJogador.value = jogadores[i].posicao;
-  tituloJogador.innerText = "Editar Jogador";
-};
-
-window.excluir = i => {
-  if(confirm("Excluir jogador?")){
-    jogadores.splice(i,1);
-    localStorage.setItem("jogadores", JSON.stringify(jogadores));
-    listarJogadores();
+// salvar jogador
+async function salvar(){
+  if(!nome.value || !posicao.value){
+    alert("Preencha nome e posição");
+    return;
   }
-};
 
-window.salvarJogo = () => {
-  jogos.push({
-    golsPro:+golsPro.value,
-    golsContra:+golsContra.value
-  });
-  localStorage.setItem("jogos", JSON.stringify(jogos));
-  calcularEstatisticas();
-};
+  const inserir = async (fotoUrl) => {
+    const { error } = await supabase
+      .from("jogadores")
+      .insert({
+        nome: nome.value,
+        posicao: posicao.value,
+        foto: fotoUrl
+      });
 
-function calcularEstatisticas(){
-  let v=0,e=0,d=0,gp=0,gc=0;
-  jogos.forEach(j=>{
-    gp+=j.golsPro; gc+=j.golsContra;
-    if(j.golsPro>j.golsContra) v++;
-    else if(j.golsPro<j.golsContra) d++;
-    else e++;
-  });
-  statsTime.innerHTML = `
-    <td>${jogos.length}</td><td>${v}</td><td>${e}</td><td>${d}</td>
-    <td>${gp}</td><td>${gc}</td><td>${gp-gc}</td>`;
+    if(error){
+      alert("Erro ao salvar");
+      console.error(error);
+      return;
+    }
+
+    nome.value = posicao.value = foto.value = "";
+    carregar();
+  };
+
+  if(foto.files[0]){
+    const r = new FileReader();
+    r.onload = () => inserir(r.result);
+    r.readAsDataURL(foto.files[0]);
+  } else {
+    inserir(FOTO_PADRAO);
+  }
 }
 
-});
+carregar();
 </script>
 
 </body>
 </html>
+

@@ -2,16 +2,17 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Portal do Time ⚽</title>
+<title>Intocáveis FC ⚽</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body { margin:0; font-family:Arial; background:#f1f5f9 }
 header { background:#0f172a; color:white; padding:15px }
 nav button {
-  margin:5px; padding:8px 12px; border:none;
-  border-radius:6px; cursor:pointer;
-  background:#22c55e; color:white
+  margin:5px; padding:8px 12px;
+  border:none; border-radius:6px;
+  background:#22c55e; color:white;
+  cursor:pointer
 }
 section { display:none; padding:20px }
 .card {
@@ -19,9 +20,10 @@ section { display:none; padding:20px }
   border-radius:10px; margin-bottom:20px
 }
 .player {
-  display:inline-block; width:160px; margin:10px;
-  background:white; border-radius:10px;
-  padding:10px; text-align:center
+  display:inline-block; width:160px;
+  margin:10px; background:white;
+  border-radius:10px; padding:10px;
+  text-align:center
 }
 .player img {
   width:100%; height:120px;
@@ -34,9 +36,9 @@ input { padding:6px; margin:4px; width:95% }
 <body>
 
 <header>
-<h2>⚽ Portal do Time</h2>
+<h2>⚽ Intocáveis FC</h2>
 <nav>
-<button onclick="show('jogadores')">Jogadores</button>
+<button onclick="showJogadores()">Jogadores</button>
 </nav>
 </header>
 
@@ -46,7 +48,7 @@ input { padding:6px; margin:4px; width:95% }
 <input id="nome" placeholder="Nome">
 <input id="posicao" placeholder="Posição">
 <input id="foto" type="file">
-<button onclick="salvar()">Salvar</button>
+<button onclick="salvarJogador()">Salvar</button>
 </div>
 
 <div id="lista"></div>
@@ -55,36 +57,38 @@ input { padding:6px; margin:4px; width:95% }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// 🔑 SUBSTITUA AQUI
-const supabase = window.supabase.createClient(
-  "https://rbnwmnacjjlzwvgdhknf.supabase.co",
-  "sb_publishable_s7UFK5ZSDIVnSlqfkQbPaQ_y3C1pI4a"
+// 🔑 SUBSTITUA SOMENTE ESTES DOIS VALORES
+const SUPABASE_URL = "https://rbnwmnacjjlzwvgdhknf.supabase.co";
+const SUPABASE_KEY = "SUA_PUBLISHABLE_KEY_AQUI";
+
+// ✅ DECLARADO UMA ÚNICA VEZ
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
 );
 
 const FOTO_PADRAO = "https://via.placeholder.com/150";
 
-// mostrar seção
-function show(id){
-  document.querySelectorAll("section").forEach(s=>s.style.display="none");
-  document.getElementById(id).style.display="block";
+// ✅ FUNÇÃO DO BOTÃO
+function showJogadores(){
+  document.getElementById("jogadores").style.display = "block";
 }
-show("jogadores");
 
-// carregar jogadores
-async function carregar(){
-  const { data, error } = await supabase
+// ✅ CARREGAR JOGADORES
+async function carregarJogadores(){
+  const { data, error } = await supabaseClient
     .from("jogadores")
     .select("*")
     .order("id");
 
   if(error){
-    alert("Erro ao carregar jogadores");
     console.error(error);
+    alert("Erro ao carregar jogadores");
     return;
   }
 
   lista.innerHTML = "";
-  data.forEach(j=>{
+  data.forEach(j => {
     lista.innerHTML += `
       <div class="player">
         <img src="${j.foto || FOTO_PADRAO}">
@@ -95,15 +99,15 @@ async function carregar(){
   });
 }
 
-// salvar jogador
-async function salvar(){
+// ✅ SALVAR JOGADOR
+async function salvarJogador(){
   if(!nome.value || !posicao.value){
     alert("Preencha nome e posição");
     return;
   }
 
   const inserir = async (fotoUrl) => {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from("jogadores")
       .insert({
         nome: nome.value,
@@ -112,29 +116,30 @@ async function salvar(){
       });
 
     if(error){
-      alert("Erro ao salvar");
       console.error(error);
+      alert("Erro ao salvar jogador");
       return;
     }
 
-    nome.value = posicao.value = foto.value = "";
-    carregar();
+    nome.value = "";
+    posicao.value = "";
+    foto.value = "";
+    carregarJogadores();
   };
 
   if(foto.files[0]){
-    const r = new FileReader();
-    r.onload = () => inserir(r.result);
-    r.readAsDataURL(foto.files[0]);
+    const reader = new FileReader();
+    reader.onload = () => inserir(reader.result);
+    reader.readAsDataURL(foto.files[0]);
   } else {
     inserir(FOTO_PADRAO);
   }
 }
 
-carregar();
+// ✅ INICIALIZA
+showJogadores();
+carregarJogadores();
 </script>
 
 </body>
 </html>
-
-
-

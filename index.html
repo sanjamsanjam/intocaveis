@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Intocáveis FC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body { font-family: Arial; background:#f1f5f9; margin:0 }
+header { background:#0f172a; color:#fff; padding:15px }
+button {
+  padding:6px 10px;
+  margin:4px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+}
+.btn-del { background:#ef4444; color:white }
+.btn-edit { background:#3b82f6; color:white }
+section { display:none; padding:20px }
+.card { background:#fff; padding:15px; border-radius:10px }
+.player {
+  display:inline-block;
+  margin:10px;
+  padding:10px;
+  background:#fff;
+  border-radius:10px;
+  min-width:150px;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>⚽ Intocáveis FC</h2>
+<button onclick="mostrarJogadores()">Jogadores</button>
+</header>
+
+<section id="jogadores">
+<div class="card">
+<h3>Cadastrar / Editar Jogador</h3>
+<input id="id" type="hidden">
+<input id="nome" placeholder="Nome"><br>
+<input id="posicao" placeholder="Posição"><br>
+<button onclick="salvar()">Salvar</button>
+</div>
+
+<div id="lista"></div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = "https://rbnwmnacjjlzwvgdhknf.supabase.co";
+const SUPABASE_KEY = "SUA_PUBLISHABLE_KEY_AQUI";
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function mostrarJogadores(){
+  document.getElementById("jogadores").style.display = "block";
+  carregar();
+}
+
+async function carregar(){
+  const { data, error } = await db.from("jogadores").select("*").order("id");
+  if(error) return alert("Erro ao carregar");
+
+  lista.innerHTML = "";
+  data.forEach(j => {
+    lista.innerHTML += `
+      <div class="player">
+        <b>${j.nome}</b><br>
+        ${j.posicao || ""}
+        <br><br>
+        <button class="btn-edit" onclick="editar(${j.id}, '${j.nome}', '${j.posicao || ""}')">Editar</button>
+        <button class="btn-del" onclick="excluir(${j.id})">Excluir</button>
+      </div>
+    `;
+  });
+}
+
+function editar(idJog, nomeJog, posJog){
+  id.value = idJog;
+  nome.value = nomeJog;
+  posicao.value = posJog;
+}
+
+async function salvar(){
+  if(!nome.value) return alert("Nome obrigatório");
+
+  if(id.value){
+    await db.from("jogadores")
+      .update({ nome: nome.value, posicao: posicao.value })
+      .eq("id", id.value);
+  } else {
+    await db.from("jogadores")
+      .insert({ nome: nome.value, posicao: posicao.value });
+  }
+
+  id.value = "";
+  nome.value = "";
+  posicao.value = "";
+  carregar();
+}
+
+async function excluir(idJog){
+  if(!confirm("Deseja excluir este jogador?")) return;
+  await db.from("jogadores").delete().eq("id", idJog);
+  carregar();
+}
+</script>
+
+</body>
+</html>
